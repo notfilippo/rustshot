@@ -8,6 +8,7 @@ use egui_winit::winit::{
     self,
     event::{Event, StartCause, WindowEvent},
     event_loop::ControlFlow,
+    window::WindowLevel,
 };
 use native::{app_icon::AppTitleIconSetter, icon_data::IconData, window::Window};
 use tray_icon::{
@@ -102,10 +103,11 @@ fn main() {
         .with_resizable(true)
         .with_transparent(true)
         .with_decorations(false)
+        .with_window_level(WindowLevel::AlwaysOnTop)
         .with_window_icon(Some(window_icon))
         .with_inner_size(winit::dpi::LogicalSize {
-            width: 800.0,
-            height: 600.0,
+            width: 300.0,
+            height: 100.0,
         })
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
         .with_visible(false);
