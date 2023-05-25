@@ -1,8 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+mod app;
 mod native;
 
-use egui::{Color32, Frame};
+use app::App;
 use egui_glow::EguiGlow;
 use egui_winit::winit::{
     self,
@@ -15,40 +16,6 @@ use tray_icon::{
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem},
     TrayEvent, TrayIconBuilder,
 };
-
-struct MyApp {
-    name: String,
-    age: u32,
-}
-
-impl Default for MyApp {
-    fn default() -> Self {
-        Self {
-            name: "Arthur".to_owned(),
-            age: 42,
-        }
-    }
-}
-
-impl MyApp {
-    fn update(&mut self, ctx: &egui::Context) {
-        let frame = Frame::none().fill(Color32::TRANSPARENT);
-
-        egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
-            ui.heading("My egui Application");
-            ui.horizontal(|ui| {
-                let name_label = ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name)
-                    .labelled_by(name_label.id);
-            });
-            ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
-            if ui.button("Click each year").clicked() {
-                self.age += 1;
-            }
-            ui.label(format!("Hello '{}', age {}", self.name, self.age));
-        });
-    }
-}
 
 fn create_tray_menu() -> Menu {
     let tray_menu = Menu::new();
@@ -72,9 +39,7 @@ fn create_tray_menu() -> Menu {
 }
 
 fn main() {
-    // dumb stuff
-
-    let mut app = MyApp::default();
+    let mut app = App::default();
 
     let app_name = "Rust Shot".to_string();
 
@@ -92,8 +57,6 @@ fn main() {
         .expect("Unable to create tray icon");
 
     let mut hack = AppTitleIconSetter::new(app_name.to_owned(), Some(image_data));
-
-    // serous stuff
 
     let clear_color = [0.0, 0.0, 0.0, 0.0];
 
@@ -139,8 +102,6 @@ fn main() {
 
     let pixels_per_point = gl_window.window().scale_factor() as f32;
     egui_glow.egui_winit.set_pixels_per_point(pixels_per_point);
-
-    // dumb stuff
 
     // Since egui uses winit under the hood and doesn't use gtk on Linux, and we need gtk for
     // the tray icon to show up, we need to spawn a thread
