@@ -3,7 +3,12 @@
 mod native;
 
 use egui::{Color32, Frame};
-use egui_winit::winit;
+use egui_glow::EguiGlow;
+use egui_winit::winit::{
+    self,
+    event::{Event, StartCause, WindowEvent},
+    event_loop::ControlFlow,
+};
 use native::{app_icon::AppTitleIconSetter, icon_data::IconData, window::Window};
 use tray_icon::{
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem},
@@ -105,10 +110,15 @@ fn main() {
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
         .with_visible(false);
 
+    #[cfg(target_os = "macos")]
+    let window_builder = {
+        use egui_winit::winit::platform::macos::WindowBuilderExtMacOS;
+        window_builder.with_has_shadow(false)
+    };
+
     let glutin_config_builder = glutin::config::ConfigTemplateBuilder::new()
         .prefer_hardware_accelerated(None)
-        .with_depth_size(0)
-        .with_stencil_size(0)
+        .with_alpha_size(8)
         .with_transparency(true);
 
     let gl_window = Window::new(window_builder, glutin_config_builder, &event_loop);
@@ -123,7 +133,7 @@ fn main() {
 
     let gl = std::sync::Arc::new(gl);
 
-    let mut egui_glow = egui_glow::EguiGlow::new(&event_loop, gl.clone(), None);
+    let mut egui_glow = EguiGlow::new(&event_loop, gl.clone(), None);
 
     let pixels_per_point = gl_window.window().scale_factor() as f32;
     egui_glow.egui_winit.set_pixels_per_point(pixels_per_point);
@@ -146,14 +156,16 @@ fn main() {
         gtk::main();
     });
 
+    #[cfg(not(target_os = "linux"))]
     let tray_menu = create_tray_menu();
-
     #[cfg(not(target_os = "linux"))]
     let _t = TrayIconBuilder::new()
         .with_icon(tray_img)
         .with_menu(Box::new(tray_menu))
         .build()
         .unwrap();
+
+    gl_window.window().set_visible(true);
 
     event_loop.run(move |event, _, control_flow| {
         let mut redraw = || {
@@ -175,16 +187,8 @@ fn main() {
             };
 
             {
-                unsafe {
-                    use glow::HasContext as _;
-                    gl.clear_color(
-                        clear_color[0],
-                        clear_color[1],
-                        clear_color[2],
-                        clear_color[3],
-                    );
-                    gl.clear(glow::COLOR_BUFFER_BIT);
-                }
+                let screen_size_in_pixels: [u32; 2] = gl_window.window().inner_size().into();
+                egui_glow::painter::clear(&gl, screen_size_in_pixels, clear_color);
 
                 // draw things behind egui here
 
@@ -193,7 +197,6 @@ fn main() {
                 // draw things on top of egui here
 
                 gl_window.swap_buffers().unwrap();
-                gl_window.window().set_visible(true);
             }
         };
 
@@ -205,21 +208,17 @@ fn main() {
             // Platform-dependent event handlers to workaround a winit bug
             // See: https://github.com/rust-windowing/winit/issues/987
             // See: https://github.com/rust-windowing/winit/issues/1619
-            winit::event::Event::RedrawEventsCleared if cfg!(windows) => redraw(),
-            winit::event::Event::RedrawRequested(_) if !cfg!(windows) => redraw(),
+            Event::RedrawEventsCleared if cfg!(windows) => redraw(),
+            Event::RedrawRequested(_) if !cfg!(windows) => redraw(),
 
-            winit::event::Event::WindowEvent { event, .. } => {
-                use winit::event::WindowEvent;
+            Event::WindowEvent { event, .. } => {
                 if matches!(event, WindowEvent::CloseRequested | WindowEvent::Destroyed) {
-                    *control_flow = winit::event_loop::ControlFlow::Exit;
+                    *control_flow = ControlFlow::Exit;
                 }
 
-                if let winit::event::WindowEvent::Resized(physical_size) = &event {
+                if let WindowEvent::Resized(physical_size) = &event {
                     gl_window.resize(*physical_size);
-                } else if let winit::event::WindowEvent::ScaleFactorChanged {
-                    new_inner_size, ..
-                } = &event
-                {
+                } else if let WindowEvent::ScaleFactorChanged { new_inner_size, .. } = &event {
                     gl_window.resize(**new_inner_size);
                 }
 
@@ -231,12 +230,11 @@ fn main() {
 
                 hack.update();
             }
-            winit::event::Event::LoopDestroyed => {
+            Event::LoopDestroyed => {
                 egui_glow.destroy();
+                *control_flow = ControlFlow::Exit;
             }
-            winit::event::Event::NewEvents(winit::event::StartCause::ResumeTimeReached {
-                ..
-            }) => {
+            Event::NewEvents(StartCause::ResumeTimeReached { .. }) => {
                 gl_window.window().request_redraw();
             }
 

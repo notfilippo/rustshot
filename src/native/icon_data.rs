@@ -6,8 +6,18 @@ pub struct IconData {
 }
 
 impl IconData {
+    pub fn to_image(&self) -> Result<image::RgbaImage, String> {
+        let Self {
+            rgba,
+            width,
+            height,
+        } = self.clone();
+        image::RgbaImage::from_raw(width, height, rgba).ok_or_else(|| "Invalid IconData".to_owned())
+    }
+
+    #[cfg(target_os = "macos")]
     pub fn to_png_bytes(&self) -> Result<Vec<u8>, String> {
-        let image: image::RgbaImage = self.clone().try_into()?;
+        let image = self.to_image()?;
         let mut png_bytes: Vec<u8> = Vec::new();
         image
             .write_to(
@@ -27,15 +37,6 @@ impl From<image::DynamicImage> for IconData {
             height: image.height(),
             rgba: image.into_raw(),
         }
-    }
-}
-
-impl TryInto<image::RgbaImage> for IconData {
-    type Error = String;
-
-    fn try_into(self) -> Result<image::RgbaImage, Self::Error> {
-        image::RgbaImage::from_raw(self.width, self.height, self.rgba)
-            .ok_or_else(|| "Invalid IconData".to_owned())
     }
 }
 
