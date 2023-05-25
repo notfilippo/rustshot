@@ -1,4 +1,4 @@
-use egui::{Color32, Frame};
+use egui::{Color32, Frame, Margin};
 
 pub struct App {
     name: String,
@@ -8,7 +8,7 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            name: "Arthur".to_owned(),
+            name: "Filippo".to_owned(),
             age: 42,
         }
     }
@@ -16,7 +16,9 @@ impl Default for App {
 
 impl App {
     pub fn update(&mut self, ctx: &egui::Context) {
-        let frame = Frame::none().fill(Color32::TRANSPARENT);
+        let frame = Frame::none()
+            .fill(Color32::TRANSPARENT)
+            .inner_margin(Margin::same(10.));
 
         egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
             ui.heading("My egui Application");

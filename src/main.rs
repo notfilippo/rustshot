@@ -70,7 +70,7 @@ fn main() {
         .with_window_icon(Some(window_icon))
         .with_inner_size(winit::dpi::LogicalSize {
             width: 300.0,
-            height: 100.0,
+            height: 200.0,
         })
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
         .with_visible(false);
