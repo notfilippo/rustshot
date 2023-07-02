@@ -82,7 +82,7 @@ fn main() {
         })
         .unwrap_or_default();
     let size = (max_position - min_position).abs();
-    // let size = Vec2::new(200., 200.);
+    // let size = Vec2::new(400., 400.);
 
     let window_builder = winit::window::WindowBuilder::new()
         .with_resizable(true)
