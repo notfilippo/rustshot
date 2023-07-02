@@ -6,7 +6,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-display-info = "0.4.2"
 egui = "0.22.0"
 egui-winit = "0.22.0"
 egui_glow = { version = "0.22.0", features = ["winit"] }

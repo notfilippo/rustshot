@@ -4,7 +4,6 @@ mod app;
 mod native;
 
 use app::App;
-use egui::Vec2;
 use egui_glow::EguiGlow;
 use egui_winit::winit::{
     self,
@@ -17,7 +16,6 @@ use tray_icon::{
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem},
     TrayEvent, TrayIconBuilder,
 };
-use display_info::DisplayInfo;
 
 fn create_tray_menu() -> Menu {
     let tray_menu = Menu::new();
@@ -63,26 +61,8 @@ fn main() {
     let clear_color = [0.0, 0.0, 0.0, 0.0];
 
     let event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
-
-    let min_position = DisplayInfo::all()
-        .map(|x| {
-            x.iter().fold(Vec2::ZERO, |acc, info| {
-                Vec2::new(acc.x.min(info.x as f32), acc.y.min(info.y as f32))
-            })
-        })
-        .unwrap_or_default();
-    let max_position = DisplayInfo::all()
-        .map(|x| {
-            x.iter().fold(Vec2::ZERO, |acc, info| {
-                Vec2::new(
-                    acc.x.max(info.x as f32 + info.width as f32),
-                    acc.y.max(info.y as f32 + info.height as f32),
-                )
-            })
-        })
-        .unwrap_or_default();
-    let size = (max_position - min_position).abs();
-    // let size = Vec2::new(400., 400.);
+    let primary = event_loop.primary_monitor().expect("Unable to get primary monitor");
+    let size = primary.size();
 
     let window_builder = winit::window::WindowBuilder::new()
         .with_resizable(true)
@@ -90,10 +70,7 @@ fn main() {
         .with_decorations(false)
         .with_window_level(WindowLevel::AlwaysOnTop)
         .with_window_icon(Some(window_icon))
-        .with_inner_size(winit::dpi::LogicalSize {
-            width: size.x,
-            height: size.y,
-        })
+        .with_inner_size(size)
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
         .with_visible(true)
         .with_active(true);
