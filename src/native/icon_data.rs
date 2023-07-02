@@ -6,16 +6,6 @@ pub struct IconData {
 }
 
 impl IconData {
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
-    pub fn to_image(&self) -> Result<image::RgbaImage, String> {
-        let Self {
-            rgba,
-            width,
-            height,
-        } = self.clone();
-        image::RgbaImage::from_raw(width, height, rgba).ok_or_else(|| "Invalid IconData".to_owned())
-    }
-
     #[cfg(target_os = "macos")]
     pub fn to_png_bytes(&self) -> Result<Vec<u8>, String> {
         let image = self.to_image()?;

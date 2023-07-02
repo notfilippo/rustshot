@@ -9,10 +9,9 @@ use egui_winit::winit::{
     self,
     event::{Event, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    platform::{run_return::EventLoopExtRunReturn},
+    platform::run_return::EventLoopExtRunReturn,
     window::WindowLevel,
 };
-use tray_icon::TrayIconBuilder;
 
 use self::app::Status;
 
@@ -20,25 +19,34 @@ pub fn run(event_loop: &mut EventLoop<()>) -> Option<Rect> {
     let app = RefCell::new(App::default());
 
     let app_name = "Rust Shot".to_string();
-
     let clear_color = [0.0, 0.0, 0.0, 0.0];
 
-    let primary = event_loop
-        .primary_monitor()
-        .expect("Unable to get primary monitor");
-    let size = primary.size();
-    let position = winit::dpi::PhysicalPosition::new(0, 0);
+    let display = event_loop.primary_monitor().expect("failed to get primary monitor");
+    let display_size = display.size();
+
+
+    // + 1 is to avoid windows bug
+    #[cfg(target_os = "windows")]
+    let correction_factor = 1;
+
+    #[cfg(not(target_os = "windows"))]
+    let correction_factor = 0;
+    
+    let window_position = winit::dpi::LogicalPosition::new(0.0, 0.0);
+    let window_size = winit::dpi::PhysicalSize::new(
+        display_size.width + correction_factor,
+        display_size.height + correction_factor, 
+    );
 
     let window_builder = winit::window::WindowBuilder::new()
         .with_resizable(true)
         .with_transparent(true)
         .with_decorations(false)
         .with_window_level(WindowLevel::AlwaysOnTop)
-        .with_position(position)
-        .with_inner_size(size)
+        .with_position(window_position)
+        .with_inner_size(window_size)
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
-        .with_visible(false)
-        .with_active(true);
+        .with_visible(false);
 
     #[cfg(target_os = "macos")]
     let window_builder = {
@@ -46,47 +54,24 @@ pub fn run(event_loop: &mut EventLoop<()>) -> Option<Rect> {
         window_builder.with_has_shadow(false)
     };
 
-    #[cfg(target_os = "linux")]
-    let window_builder = {
-        use egui_winit::winit::platform::x11::{WindowBuilderExtX11, XWindowType, WindowExtX11};
-        window_builder
-            .with_override_redirect(true)
-            .with_x11_window_type(vec![XWindowType::Utility, XWindowType::Normal])
-    };
     let glutin_config_builder = glutin::config::ConfigTemplateBuilder::new()
+        .prefer_hardware_accelerated(None)
         .with_alpha_size(8)
         .with_transparency(true);
 
-    let gl_window = OpenGLWindow::new(window_builder, glutin_config_builder, &event_loop);
+    let gl_window = OpenGLWindow::new(window_builder, glutin_config_builder, event_loop);
     let gl = unsafe {
         glow::Context::from_loader_function(|s| {
             let s = std::ffi::CString::new(s)
                 .expect("failed to construct C string from string for gl proc address");
+
             gl_window.get_proc_address(&s)
         })
     };
+
     let gl = std::sync::Arc::new(gl);
 
-    #[cfg(target_os = "linux")]
-    unsafe {
-        let window = gl_window.window();
-        let window_id = window.xlib_window();
-        let display_id = window.xlib_display();
-        match (window_id, display_id) {
-            (Some(window_id), Some(display_id)) => {
-                let xlib = x11_dl::xlib::Xlib::open().expect("failed to open xlib");
-                (xlib.XSetInputFocus)(
-                    display_id as _,
-                    window_id,
-                    x11_dl::xlib::RevertToNone,
-                    x11_dl::xlib::CurrentTime,
-                );
-            }
-            _ => {}
-        }
-    }
-
-    let mut egui_glow = EguiGlow::new(&event_loop, gl.clone(), None);
+    let mut egui_glow = EguiGlow::new(event_loop, gl.clone(), None);
 
     let pixels_per_point = gl_window.window().scale_factor() as f32;
     egui_glow.egui_winit.set_pixels_per_point(pixels_per_point);

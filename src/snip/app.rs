@@ -1,5 +1,6 @@
 use egui::*;
 
+#[derive(Debug, Default)]
 pub struct App {
     selection: Option<Rect>,
     focus: bool,
@@ -11,18 +12,9 @@ pub enum Status {
     Quit,
 }
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            selection: None,
-            focus: false,
-        }
-    }
-}
-
 impl App {
     pub fn selection(&self) -> Option<Rect> {
-        return self.selection
+        self.selection
     }
 }
 
@@ -108,9 +100,9 @@ impl App {
                 painter.rect_stroke(rect, 0., SELECT_STROKE);
             }
             
-            return Status::Running;
+            Status::Running
         });
 
-        return response.inner;
+        response.inner
     }
 }

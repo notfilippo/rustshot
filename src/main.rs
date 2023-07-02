@@ -36,7 +36,6 @@ fn main() {
     let image = image::open(image_path).expect("Failed to open icon path");
     let image_data: IconData = image.into();
     let tray_img: tray_icon::icon::Icon = image_data
-        .clone()
         .try_into()
         .expect("Unable to create tray icon");
 
@@ -62,7 +61,7 @@ fn main() {
     let tray_menu = crate::create_tray_menu();
     #[cfg(not(target_os = "linux"))]
     let _tray_icon = TrayIconBuilder::new()
-        // .with_icon(tray_img)
+        .with_icon(tray_img)
         .with_menu(Box::new(tray_menu))
         .build()
         .unwrap();
