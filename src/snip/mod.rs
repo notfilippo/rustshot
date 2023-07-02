@@ -8,21 +8,21 @@ use egui_glow::EguiGlow;
 use egui_winit::winit::{
     self,
     event::{Event, StartCause, WindowEvent},
-    event_loop::ControlFlow,
+    event_loop::{ControlFlow, EventLoop},
     platform::{run_return::EventLoopExtRunReturn},
     window::WindowLevel,
 };
+use tray_icon::TrayIconBuilder;
 
 use self::app::Status;
 
-pub fn run() -> Option<Rect> {
+pub fn run(event_loop: &mut EventLoop<()>) -> Option<Rect> {
     let app = RefCell::new(App::default());
 
     let app_name = "Rust Shot".to_string();
 
     let clear_color = [0.0, 0.0, 0.0, 0.0];
 
-    let mut event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
     let primary = event_loop
         .primary_monitor()
         .expect("Unable to get primary monitor");
@@ -35,7 +35,7 @@ pub fn run() -> Option<Rect> {
         .with_window_level(WindowLevel::AlwaysOnTop)
         .with_inner_size(size)
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
-        .with_visible(true)
+        .with_visible(false)
         .with_active(true);
 
     #[cfg(target_os = "macos")]

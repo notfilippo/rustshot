@@ -3,6 +3,7 @@
 mod native;
 mod snip;
 
+use egui_winit::winit;
 use native::icon_data::IconData;
 use tray_icon::{
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem},
@@ -55,15 +56,17 @@ fn main() {
         gtk::main();
     });
 
+    let mut event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
+
     #[cfg(not(target_os = "linux"))]
-    let tray_menu = create_tray_menu();
+    let tray_menu = crate::create_tray_menu();
     #[cfg(not(target_os = "linux"))]
     let _tray_icon = TrayIconBuilder::new()
-        .with_icon(tray_img)
+        // .with_icon(tray_img)
         .with_menu(Box::new(tray_menu))
         .build()
         .unwrap();
 
-    let rect = snip::run();
+    let rect = snip::run(&mut event_loop);
     println!("Snip: {:?}", rect)
 }
