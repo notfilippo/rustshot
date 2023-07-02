@@ -27,12 +27,14 @@ pub fn run(event_loop: &mut EventLoop<()>) -> Option<Rect> {
         .primary_monitor()
         .expect("Unable to get primary monitor");
     let size = primary.size();
+    let position = winit::dpi::PhysicalPosition::new(0, 0);
 
     let window_builder = winit::window::WindowBuilder::new()
         .with_resizable(true)
         .with_transparent(true)
         .with_decorations(false)
         .with_window_level(WindowLevel::AlwaysOnTop)
+        .with_position(position)
         .with_inner_size(size)
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
         .with_visible(false)
@@ -52,7 +54,6 @@ pub fn run(event_loop: &mut EventLoop<()>) -> Option<Rect> {
             .with_x11_window_type(vec![XWindowType::Utility, XWindowType::Normal])
     };
     let glutin_config_builder = glutin::config::ConfigTemplateBuilder::new()
-        .prefer_hardware_accelerated(None)
         .with_alpha_size(8)
         .with_transparency(true);
 
