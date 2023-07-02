@@ -6,6 +6,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+display-info = "0.4.2"
 egui = "0.22.0"
 egui-winit = "0.22.0"
 egui_glow = { version = "0.22.0", features = ["winit"] }
@@ -41,6 +42,7 @@ to capture, annotate, and share screenshots with ease and precision.
 libappindicator = "0.8"
 dirs-next = "2.0"
 gtk = "0.16"
+x11-dl = "2.21.0"
 
 [target.'cfg(any(target_os = "macos"))'.dependencies]
 cocoa = "0.24.1"

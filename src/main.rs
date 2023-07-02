@@ -4,18 +4,20 @@ mod app;
 mod native;
 
 use app::App;
+use egui::Vec2;
 use egui_glow::EguiGlow;
 use egui_winit::winit::{
     self,
     event::{Event, StartCause, WindowEvent},
     event_loop::ControlFlow,
-    window::WindowLevel,
+    window::WindowLevel, platform::x11::WindowExtX11, 
 };
-use native::{app_icon::AppTitleIconSetter, icon_data::IconData, window::Window};
+use native::{app_icon::AppTitleIconSetter, icon_data::IconData, window::OpenGLWindow};
 use tray_icon::{
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem},
     TrayEvent, TrayIconBuilder,
 };
+use display_info::DisplayInfo;
 
 fn create_tray_menu() -> Menu {
     let tray_menu = Menu::new();
@@ -62,6 +64,26 @@ fn main() {
 
     let event_loop = winit::event_loop::EventLoopBuilder::with_user_event().build();
 
+    let min_position = DisplayInfo::all()
+        .map(|x| {
+            x.iter().fold(Vec2::ZERO, |acc, info| {
+                Vec2::new(acc.x.min(info.x as f32), acc.y.min(info.y as f32))
+            })
+        })
+        .unwrap_or_default();
+    let max_position = DisplayInfo::all()
+        .map(|x| {
+            x.iter().fold(Vec2::ZERO, |acc, info| {
+                Vec2::new(
+                    acc.x.max(info.x as f32 + info.width as f32),
+                    acc.y.max(info.y as f32 + info.height as f32),
+                )
+            })
+        })
+        .unwrap_or_default();
+    let size = (max_position - min_position).abs();
+    // let size = Vec2::new(200., 200.);
+
     let window_builder = winit::window::WindowBuilder::new()
         .with_resizable(true)
         .with_transparent(true)
@@ -69,34 +91,57 @@ fn main() {
         .with_window_level(WindowLevel::AlwaysOnTop)
         .with_window_icon(Some(window_icon))
         .with_inner_size(winit::dpi::LogicalSize {
-            width: 300.0,
-            height: 200.0,
+            width: size.x,
+            height: size.y,
         })
         .with_title(app_name) // Keep hidden until we've painted something. See https://github.com/emilk/egui/pull/2279
-        .with_visible(false);
+        .with_visible(true)
+        .with_active(true);
 
     #[cfg(target_os = "macos")]
     let window_builder = {
         use egui_winit::winit::platform::macos::WindowBuilderExtMacOS;
         window_builder.with_has_shadow(false)
     };
-
+    
+    #[cfg(target_os = "linux")]
+    let window_builder = {
+        use egui_winit::winit::platform::x11::{WindowBuilderExtX11, XWindowType};
+        window_builder.with_override_redirect(true).with_x11_window_type(vec![XWindowType::Utility, XWindowType::Normal]) // Cannot steal focus
+    };
     let glutin_config_builder = glutin::config::ConfigTemplateBuilder::new()
         .prefer_hardware_accelerated(None)
         .with_alpha_size(8)
         .with_transparency(true);
 
-    let gl_window = Window::new(window_builder, glutin_config_builder, &event_loop);
+    let gl_window = OpenGLWindow::new(window_builder, glutin_config_builder, &event_loop);
     let gl = unsafe {
         glow::Context::from_loader_function(|s| {
             let s = std::ffi::CString::new(s)
                 .expect("failed to construct C string from string for gl proc address");
-
             gl_window.get_proc_address(&s)
         })
     };
-
     let gl = std::sync::Arc::new(gl);
+
+    #[cfg(target_os = "linux")]
+    unsafe {
+        let window = gl_window.window();
+        let window_id = window.xlib_window();
+        let display_id = window.xlib_display();
+        match (window_id, display_id) {
+            (Some(window_id), Some(display_id)) => {
+                let xlib = x11_dl::xlib::Xlib::open().expect("AAAA");
+                (xlib.XSetInputFocus)(
+                    display_id as _,
+                    window_id,
+                    x11_dl::xlib::RevertToNone,
+                    x11_dl::xlib::CurrentTime,
+                );
+            }
+            _ => {}
+        }
+    }
 
     let mut egui_glow = EguiGlow::new(&event_loop, gl.clone(), None);
 

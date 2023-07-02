@@ -1,4 +1,4 @@
-use egui::{Color32, Frame, Margin};
+use egui::{Color32, Frame, Margin, Key};
 
 pub struct App {
     name: String,
@@ -17,8 +17,13 @@ impl Default for App {
 impl App {
     pub fn update(&mut self, ctx: &egui::Context) {
         let frame = Frame::none()
-            .fill(Color32::TRANSPARENT)
+            .fill(Color32::RED)
             .inner_margin(Margin::same(10.));
+
+        if ctx.input(|i| i.key_pressed(Key::Escape)) {
+            println!("Escape pressed, quitting");
+            std::process::exit(0);
+        }
 
         egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
             ui.heading("My egui Application");
