@@ -9,7 +9,7 @@ use egui_winit::winit::{
     self,
     event::{Event, StartCause, WindowEvent},
     event_loop::ControlFlow,
-    platform::{run_return::EventLoopExtRunReturn, x11::WindowExtX11},
+    platform::{run_return::EventLoopExtRunReturn},
     window::WindowLevel,
 };
 
@@ -46,7 +46,7 @@ pub fn run() -> Option<Rect> {
 
     #[cfg(target_os = "linux")]
     let window_builder = {
-        use egui_winit::winit::platform::x11::{WindowBuilderExtX11, XWindowType};
+        use egui_winit::winit::platform::x11::{WindowBuilderExtX11, XWindowType, WindowExtX11};
         window_builder
             .with_override_redirect(true)
             .with_x11_window_type(vec![XWindowType::Utility, XWindowType::Normal])

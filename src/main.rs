@@ -56,14 +56,13 @@ fn main() {
     });
 
     #[cfg(not(target_os = "linux"))]
-    {
-        let tray_menu = create_tray_menu();
-        TrayIconBuilder::new()
-            .with_icon(tray_img)
-            .with_menu(Box::new(tray_menu))
-            .build()
-            .unwrap();
-    }
+    let tray_menu = create_tray_menu();
+    #[cfg(not(target_os = "linux"))]
+    let _tray_icon = TrayIconBuilder::new()
+        .with_icon(tray_img)
+        .with_menu(Box::new(tray_menu))
+        .build()
+        .unwrap();
 
     let rect = snip::run();
     println!("Snip: {:?}", rect)

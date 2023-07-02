@@ -6,7 +6,7 @@ pub struct IconData {
 }
 
 impl IconData {
-    #[cfg(all(target_os = "macos", target_os = "windows"))]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     pub fn to_image(&self) -> Result<image::RgbaImage, String> {
         let Self {
             rgba,
